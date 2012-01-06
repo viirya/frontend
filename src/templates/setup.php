@@ -40,6 +40,7 @@
         <button type="submit">Continue to Step 2</button>
       </div>
       <input type="hidden" name="appId" id="appId" <?php if(isset($appId)) { ?>value="<?php $this->utility->safe($appId); ?>"<?php } ?>>
+      <input type="hidden" name="skipConfig" id="skipConfig" <?php if(isset($skipConfig) && $skipConfig == 1) { ?>value="<?php $this->utility->safe($skipConfig); ?>"<?php } ?>>
     </form>
   </div>
   <div id="setup-step-2"<?php echo ($step != 2) ? ' class="hidden"' : ''?>>
@@ -186,4 +187,12 @@
       </div>
     </form>
   </div>
+  <?php if(isset($iniName) && isset($generatedIni)) { ?>
+    <div id="setup-step-4"<?php echo ($step != 4) ? ' class="hidden"' : ''?>>
+      <h2>Configuration</h2>
+      <p>Copy and paste the details below into a file named <code><?php $this->utility->safe($iniName); ?></code> in the folder <code><?php $this->utility->safe($generatedDir); ?></code> (you may have to create this folder)</p>
+      <textarea cols="80" rows="65"><?php $this->utility->safe($generatedIni) ?></textarea>
+      <p>Once the configuration is in place, <a href="/">you're done!</a>.</p>
+    </div>
+  <?php } ?>
 </div>

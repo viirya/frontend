@@ -1,12 +1,12 @@
 <?php
 /**
-  * Setup controller for HTML endpoints
-  * This controls the setup flow when the software is first installed.
-  * The main purpose of this flow is to generate settings.ini.
-  *
-  * @author Jaisen Mathai <jaisen@jmathai.com>
-  * @author Kevin Hornschemeier <khornschemeier@gmail.com>
-  */
+* Setup controller for HTML endpoints
+* This controls the setup flow when the software is first installed.
+* The main purpose of this flow is to generate settings.ini.
+*
+* @author Jaisen Mathai <jaisen@jmathai.com>
+* @author Kevin Hornschemeier <khornschemeier@gmail.com>
+*/
 class SetupController extends BaseController
 {
   /**
@@ -55,10 +55,23 @@ class SetupController extends BaseController
 
     $errors = $this->verifyRequirements($imageLibs);
 
-    if(count($errors) > 0)
-      $step = 0;
-    else
-      $errors = '';
+    $skipConfig = 0;
+    foreach ($errors as $error => $message)
+    {
+      switch ($error)
+      {
+        case 'config_not_writable':
+          $skipConfig = 1;
+          $step = 1;
+          break;
+        case 'cannot_create_generated':
+        case 'generated_not_writable':
+        case 'no_image_lib':
+        default:
+          $step = 0;
+          break;
+      }
+    }
 
     $email = '';
     if(getConfig()->get('user') != null)
@@ -178,11 +191,12 @@ class SetupController extends BaseController
     */
   public function setupPost()
   {
-    $step = 1;
-    $appId = isset($_POST['appId']) ? $_POST['appId'] : '';
-    $email = isset($_POST['email']) ? $_POST['email'] : '';
-    $theme = isset($_POST['theme']) ? $_POST['theme'] : '';
-    $input = array(
+    $step       = 1;
+    $appId      = isset($_POST['appId']) ? $_POST['appId'] : '';
+    $email      = isset($_POST['email']) ? $_POST['email'] : '';
+    $theme      = isset($_POST['theme']) ? $_POST['theme'] : '';
+    $skipConfig = isset($_POST['skipConfig']) ? $_POST['skipConfig'] : '';
+    $input      = array(
       array('Email', $email, 'required')
     );
 
@@ -193,6 +207,7 @@ class SetupController extends BaseController
       getSession()->set('appId', $appId);
       getSession()->set('ownerEmail', $email);
       getSession()->set('theme', $theme);
+      getSession()->set('skipConfig', $skipConfig);
 
       $qs = '';
       if(isset($_GET['edit']))
@@ -553,7 +568,9 @@ class SetupController extends BaseController
       $fsObj = getFs();
       $dbObj = getDb();
 
-      $serverUser = exec("whoami");
+      $serverUser = @exec("whoami");
+      if(empty($serverUser))
+        $serverUser = 'unknown';
       if(!$fsObj->initialize($isEditMode))
       {
         if($usesAws)
@@ -577,8 +594,9 @@ class SetupController extends BaseController
 
       if($fsErrors === false && $dbErrors === false)
       {
-        $writeError = $this->writeConfigFile();
-        if($writeErrors === false)
+        // we negate this because writeConfigFile returns status
+        $writeStatus = ($this->writeConfigFile() === false);
+        if($writeStatus === true)
         {
           if(isset($_GET['edit']))
           {
@@ -616,6 +634,9 @@ class SetupController extends BaseController
     $qs = '';
     if(isset($_GET['edit']))
       $qs = '?edit';
+
+    if(isset($writeStatus) && $writeStatus === false)
+      $step = 4;
 
     $template = sprintf('%s/setup.php', getConfig()->get('paths')->templates);
     // copied to/from setup3()
@@ -674,36 +695,40 @@ class SetupController extends BaseController
     */
   private function verifyRequirements($imageLibs)
   {
-    $errors = array();
+    $warnings = array();
     $configDir = $this->utility->getBaseDir() . '/userdata';
     $generatedDir = "{$configDir}/configs";
 
     if(file_exists($generatedDir) && is_writable($generatedDir) && !empty($imageLibs))
       # No errors, return empty array
-      return $errors;
+      return $warnings;
 
-    $user = exec("whoami");
+    $user = @exec("whoami");
     if(empty($user))
       $user = 'Apache user';
 
     if(!is_writable($configDir))
-      $errors[] = "Insufficient privileges to complete setup.<ul><li>Make sure the user <em>{$user}</em> can write to <em>{$configDir}</em>.</li></ul>";
-
-    if(!file_exists($generatedDir))
     {
-      $createDir = mkdir($generatedDir, 0700);
-      if(!$createDir)
-        $errors[] = "Could not create configuration directory.<ul><li>Make sure the user <em>{$user}</em> can write to <em>{$generatedDir}</em>.</li></ul>";
+      $warnings['config_not_writable'] = "<em>{$configDir}</em> is not writable. <ul><li>You can either make the directory writable by <em>{$user}</em> or,</li><li>manually upload the config at the end of the setup.</li></ul>";
     }
-    elseif(!is_writable($generatedDir))
+    else
     {
-      $errors[] = "Directory exist but is not writable.<ul><li>Make sure the user <em>{$user}</em> can write to <em>{$generatedDir}</em>.</li></ul>";
+      if(!file_exists($generatedDir))
+      {
+        $createDir = mkdir($generatedDir, 0700);
+        if(!$createDir)
+          $warnings['cannot_create_generated'] = "Could not create configuration directory.<ul><li>Make sure the user <em>{$user}</em> can write to <em>{$generatedDir}</em>.</li></ul>";
+      }
+      elseif(!is_writable($generatedDir))
+      {
+        $warnings['generated_not_writable'] = "Directory exist but is not writable.<ul><li>Make sure the user <em>{$user}</em> can write to <em>{$generatedDir}</em>.</li></ul>";
+      }
+
+      if(empty($imageLibs))
+        $warnings['no_image_lib'] = 'No suitable image library exists.<ul><li>Make sure that one of the following are installed: <em><a href="http://php.net/imagick">Imagick</a></em>, <em><a href="http://php.net/gmagick">Gmagick</a></em>, or <em><a href="http://php.net/gd">GD</a></em>.</li></ul>';
     }
 
-    if(empty($imageLibs))
-      $errors[] = 'No suitable image library exists.<ul><li>Make sure that one of the following are installed: <em><a href="http://php.net/imagick">Imagick</a></em>, <em><a href="http://php.net/gmagick">Gmagick</a></em>, or <em><a href="http://php.net/gd">GD</a></em>.</li></ul>';
-
-    return $errors;
+    return $warnings;
   }
 
   /**
@@ -775,9 +800,21 @@ class SetupController extends BaseController
       file_get_contents("{$configDir}/template.ini")
     );
 
-    $iniWritten = file_put_contents(sprintf("%s/userdata/configs/%s.ini", $baseDir, getenv('HTTP_HOST')), $generatedIni);
-    if(!$iniWritten)
-      return false;
+    if (getSession()->get('skipConfig') == 1)
+    {
+      $step = 4;
+      $iniName = sprintf("%s.ini", getenv('HTTP_HOST'));
+      $generatedDir = $configDir . '/generated/';
+      // Output config to a text box for copying.
+      $template = sprintf('%s/setup.php', getConfig()->get('paths')->templates);
+      $body = getTemplate()->get($template, array('step' => $step, 'generatedIni' => $generatedIni, 'iniName' => $iniName, 'generatedDir' => $generatedDir));
+      getTheme()->display('template.php', array('body' => $body, 'page' => 'setup'));
+    }
+    else {
+      $iniWritten = file_put_contents(sprintf("%s/userdata/configs/%s.ini", $baseDir, getenv('HTTP_HOST')), $generatedIni);
+      if(!$iniWritten)
+        return false;
+    }
 
     // clean up the session
     foreach($session as $key => $val)

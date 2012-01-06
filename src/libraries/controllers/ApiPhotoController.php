@@ -262,7 +262,7 @@ class ApiPhotoController extends ApiBaseController
     {
       unset($attributes['photo']);
       $localFile = tempnam($this->config->paths->temp, 'opme');
-      $name = basename($localFile).'.jpg';
+      $name = basename($localFile).'.jpe';
       file_put_contents($localFile, base64_decode($_POST['photo']));
       $photoId = $this->photo->upload($localFile, $name, $attributes);
     }

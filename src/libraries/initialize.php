@@ -2,6 +2,27 @@
 // TODO, remove these
 date_default_timezone_set('America/Los_Angeles');
 
+// If custom route is not being used, try some more common routing cases
+// See pull request #277 and issue #293
+if (!isset($_GET['__route__']))
+{
+  if (isset($_SERVER['PATH_INFO']))
+  {
+    $_GET['__route__'] = $_SERVER['PATH_INFO'];
+  }
+  else if (isset($_SERVER['REQUEST_URI']))
+  {
+    if ($request_uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH))
+    {
+      $_GET['__route__'] = $request_uri;
+    }
+  }
+  else if (isset($_SERVER['PHP_SELF']))
+  {
+    $_GET['__route__'] = $_SERVER['PHP_SELF'];
+  }
+}
+
 if(isset($_GET['__route__']) && strstr($_GET['__route__'], '.json'))
   header('Content-type: application/json');
 

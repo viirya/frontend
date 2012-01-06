@@ -47,4 +47,3 @@ class FacebookConnectPlugin extends PluginBase
 MKP;
   }
 }
-
