@@ -44,7 +44,9 @@ require $pathsObj->libraries . '/functions.php';
 // adapters
 require $pathsObj->adapters . '/Database.php';
 require $pathsObj->adapters . '/DatabaseSimpleDb.php';
+require $pathsObj->adapters . '/DatabaseDynamoDb.php';
 require $pathsObj->adapters . '/DatabaseMySql.php';
+require $pathsObj->adapters . '/DatabasePostgreSql.php';
 require $pathsObj->adapters . '/FileSystem.php';
 require $pathsObj->adapters . '/FileSystemS3.php';
 require $pathsObj->adapters . '/FileSystemS3Dropbox.php';

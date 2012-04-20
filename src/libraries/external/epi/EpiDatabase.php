@@ -7,6 +7,9 @@ class EpiDatabase
   public $dbh;
   private function __construct(){}
 
+  const typePgSql = 'pgsql';
+  const typeMySql = 'mysql';
+
   public static function getInstance($type, $name, $host = 'localhost', $user = 'root', $pass = '')
   {
     $args = func_get_args();
@@ -33,11 +36,29 @@ class EpiDatabase
     {
       $sth = $this->prepare($sql, $params);
       if(!$sth)
+      {
+         getLogger()->info("sth is empty, returning false");
         return false;
-      else if(preg_match('/^(insert|replace)/i', $sql))
-        return $this->dbh->lastInsertId();
+      }
+      else if(preg_match('/(insert|replace)/i', $sql))
+      {
+        getLogger()->info("insert or replace");
+        switch($this->_type)
+        {
+          case self::typePgSql:
+            /* TODO: return the correct value */
+            return true;
+            break;
+          case self::typeMySql:
+          default:
+            return $this->dbh->lastInsertId();
+            break;
+        }
+      }
       else
+      {
         return $sth->rowCount();
+      }
     }
     catch(PDOException $e)
     {

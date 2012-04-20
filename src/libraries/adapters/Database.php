@@ -93,11 +93,17 @@ if(!function_exists('getDb'))
 
     switch($type)
     {
+      case 'DynamoDb':
+        $database = new DatabaseDynamoDb();
+        break;
       case 'SimpleDb':
         $database = new DatabaseSimpleDb();
         break;
       case 'MySql':
         $database = new DatabaseMySql();
+        break;
+      case 'PostgreSql':
+        $database = new DatabasePostgreSql();
         break;
     }
 
