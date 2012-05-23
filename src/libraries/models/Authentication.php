@@ -75,7 +75,6 @@ class Authentication
       return;
     elseif($crumb === null && isset($_REQUEST['crumb']))
       $crumb = $_REQUEST['crumb'];
-
     if($this->session->get('crumb') != $crumb)
       OPException::raise(new OPAuthorizationException('Crumb does not match'));
   }

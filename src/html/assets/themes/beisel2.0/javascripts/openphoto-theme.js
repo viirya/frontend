@@ -307,6 +307,41 @@ var opTheme = (function() {
 
         $("img.previous-photo").click();
       },
+      signUp: function (ev) {
+        ev.preventDefault();
+        $('#signupBox').modal();
+      },
+      signUpOpenPhoto: function (ev) {
+        ev.preventDefault();
+        var el = $(ev.target).parent()
+            params = el.serialize();
+        params += '&httpCodes=403';
+        $.ajax(
+          {
+            url: '/user/openphoto/signup.json',
+            dataType:'json',
+            data:params,
+            type:'POST',
+            success: opTheme.callback.signupProcessed,
+            error: opTheme.callback.signupOpenPhotoFailedCb,
+            context: el
+          }
+        );
+        return false;
+      },
+      signupProcessed: function (response) {
+        if(response.code === 200)
+          window.location.reload();
+      },
+      signupOpenPhotoFailedCb: function (response) {
+        message = $.parseJSON(response.responseText).message;
+        $('#signup-message').html('*' + message);
+ 
+        var fields = $(this).find('.control-group');
+        fields.each(function(i, el) {
+          $(el).addClass('error');
+        });
+      },
       login: function(ev) {
         ev.preventDefault();
         var el = $(ev.target);
@@ -368,19 +403,25 @@ var opTheme = (function() {
         pushstate.replace(pathname);
       },
       photoDelete: function(ev) {
-      
         ev.preventDefault();
         var el = $(ev.target),
-          	url = el.parent().attr('action')+'.json';
-      
-        OP.Util.makeRequest(url, el.parent().serializeArray(), function(response) {
+                id = el.attr('data-id'),
+                params = {'crumb':crumb.get()},
+          	url = '/photo/'+id+'/delete.json'; //el.parent().attr('action')+'.json';
+     
+        OP.Util.makeRequest(url, params, function(response) {
+          var img_el = el.prev().prev().prev();
+          
           if(response.code === 204) {
-            el.html('This photo has been deleted');
-            opTheme.message.confirm('This photo has been deleted.');
+            img_el.hide();
+            el.parent().html('This photo has been deleted');
+            //opTheme.message.confirm('This photo has been deleted.');
+            //opTheme.init.pages.photos.load();
+            //window.location.reload();
           } else {
             opTheme.message.error('Could not delete the photo.');
           }
-        });
+        }, 'json', 'post');
         return false;
       },
       photoEdit: function(ev) {
@@ -663,6 +704,8 @@ var opTheme = (function() {
         OP.Util.on('click:group-email-add', opTheme.callback.groupEmailAdd);
         OP.Util.on('click:group-email-remove', opTheme.callback.groupEmailRemove);
         OP.Util.on('click:group-post', opTheme.callback.groupPost);
+        OP.Util.on('click:sign-up', opTheme.callback.signUp);
+        OP.Util.on('click:sign-up-openphoto', opTheme.callback.signUpOpenPhoto);
         OP.Util.on('click:login', opTheme.callback.login);
         OP.Util.on('click:login-modal', opTheme.callback.loginModal);
         OP.Util.on('click:login-openphoto', opTheme.callback.loginOpenPhoto);
@@ -807,9 +850,10 @@ var opTheme = (function() {
               }
             }
 
-            params.returnSizes = '960x180';
+            params.returnSizes = '160x160xCR'; //'960x180';
             params.page = _this.page;
-
+//console.log(api);
+//console.log(params);
             $.getJSON(api, params, _this.loadCb);
           },
           loadCb: function(response) {
@@ -817,6 +861,7 @@ var opTheme = (function() {
                 minDate = $('.startdate', infobar), maxDate = $('.enddate', infobar),
                 minDateVal = parseInt(minDate.attr('data-time')), maxDateVal = parseInt(maxDate.attr('data-time')),
                 ui = opTheme.ui, i;
+console.log(items);
             if(items[0].totalPages >= _this.page) {
 
               var thisTaken;
@@ -938,7 +983,8 @@ var opTheme = (function() {
 
           log('login processing succeeded');
           window.location.reload();
-        }
+        },
+        
       },
       browserid: {
         loginFailure: function(assertion) {

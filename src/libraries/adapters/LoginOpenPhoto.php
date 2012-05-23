@@ -16,6 +16,19 @@ class LoginOpenPhoto implements LoginInterface
     $this->utility = new Utility;
   }
 
+  public function verifyUserbyEmail($args)
+  {
+    $email = $args['email'];
+    if($this->config->site->allowOpenPhotoLogin != 1 || $email == '')
+      return false;
+
+    $user = $this->db->getUserByEmail($email);
+    if(!$user)
+      return false;
+
+    return $user['id'];
+  }
+
   public function verifyEmail($args)
   {
     $email = $args['email'];

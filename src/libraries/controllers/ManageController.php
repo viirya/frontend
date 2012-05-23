@@ -37,10 +37,12 @@ class ManageController extends BaseController
 
   public function home()
   {
-    $photosApiParams = array('_GET' => array_merge($_GET, array('returnSizes' => '160x160xCR', 'pageSize' => 18)));
+    $groups = getDb()->getGroups(getDb()->getOwner());
+    //$filters['groups'] = $groups;
+    $photosApiParams = array('_GET' => array_merge($_GET, array('returnSizes' => '160x160xCR', 'pageSize' => 18, 'groups' => $groups)));
     $photosResp = $this->api->invoke('/photos/list.json', EpiRoute::httpGet, $photosApiParams);
     $photos = $photosResp['result'];
-
+#print_r($photos);
     $pages = array('pages' => array());
     if(!empty($photos))
     {

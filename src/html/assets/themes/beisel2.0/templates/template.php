@@ -54,6 +54,7 @@
       <div class="modal hide fade" id="modal"></div>
       <div class="modal photo-detail hide fade span12" id="modal-photo-detail"></div>
       <?php if(!$this->user->isLoggedIn()) { ?>
+	<?php $this->theme->display('partials/signup.php'); ?>
         <?php $this->theme->display('partials/login.php'); ?>
       <?php } ?>
 
@@ -84,6 +85,8 @@
               'group-email-add-click':'click:group-email-add',
               'group-email-remove-click':'click:group-email-remove',
               'group-post-click':'click:group-post',
+              'sign-up-click':'click:sign-up',
+              'signup-openphoto-click':'click:sign-up-openphoto',
               'login-click':'click:login',
               'login-modal-click':'click:login-modal',
               'login-openphoto-click':'click:login-openphoto',
@@ -110,11 +113,11 @@
               'upload-start-click':'click:upload-start',
               'webhook-delete-click':'click:webhook-delete'
           },
-          <?php if($this->user->isOwner()) { ?>
+          <?php //if($this->user->isOwner()) { ?>
             'change': {
                 'batch-field-change':'change:batch-field'
             },
-          <?php } ?>
+          <?php //} ?>
           'keydown': {
               37: 'keydown:browse-previous',
               39: 'keydown:browse-next'

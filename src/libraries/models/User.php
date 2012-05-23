@@ -66,11 +66,19 @@ class User extends BaseModel
     $user = $this->getUserRecord();
     if($user === false)
       return false;
-
     if(!isset($user[$key]))
       $user[$key] = '';
     $nextIntId = base_convert($user[$key], 31, 10) + 1;
     $nextId = base_convert($nextIntId, 10, 31);
+
+    if ($type == 'Photo') {
+       $photo = getDb()->getPhoto($nextId);
+       if (isset($photo['id'])) {
+         $nextIntId++;
+         $nextId = base_convert($nextIntId, 10, 31);  
+       }
+    } 
+
     $this->update(array($key => $nextId));
     return $nextId;
   }
@@ -123,6 +131,7 @@ class User extends BaseModel
 
   public function isOwner()
   {
+    return true;
     if(!isset($this->config->user))
       return false;
 
@@ -156,6 +165,20 @@ class User extends BaseModel
     return false;
   }
 
+  public function signup($provider, $params) {
+
+    $email = getLogin($provider)->verifyUserbyEmail($params);
+    if(!$email === false)
+      return array(false, 'The email is used by other user.');
+
+    $params = array_merge($this->getDefaultAttributes(), $params);
+    $owner = $params['email'];
+    unset($params['email']);
+    unset($params['httpCodes']);
+    $params['password'] = sha1(sprintf('%s-%s', $params['password'], getConfig()->get('secrets')->passwordSalt));
+    return array($this->db->putUser($params, $owner), '');
+  }
+
   /**
     * Validate the identity of the user using BrowserID
     * If the assertion is valid then the email address is stored in session with a random key to prevent XSRF.
@@ -171,6 +194,7 @@ class User extends BaseModel
       return false;
 
     $this->setEmail($email);
+    $this->db->setOwner($params['email']);
     return true;
   }
 

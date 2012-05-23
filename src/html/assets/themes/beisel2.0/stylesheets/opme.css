@@ -1815,7 +1815,7 @@ button.btn.small, input[type="submit"].btn.small {
 	color:#E6501E;
 }
 .icon-large:before {
-	font-size:1.3333333333333333em;
+	font-size:1.8333333333333333em;
 }
 /*.btn [class^="icon-"], .btn [class*=" icon-"] {
 	line-height:.9em;
@@ -2032,6 +2032,9 @@ li[class^="icon-"].icon-large:before, li[class*=" icon-"].icon-large:before {
 	content:"\f043";
 }
 .icon-edit:before {
+	content:"\f044";
+}
+.icon-delete:before {
 	content:"\f044";
 }
 .icon-share:before {

@@ -67,7 +67,7 @@ var Gallery = (function($) {
 		// thumbnail size to length of all thumbnails.
 		for(var i in items) {
 			var item = items[i];
-			var fractOfLen = item['photo960x180'][1] / len;
+			var fractOfLen = item['photo160x160xCR'][1] / len;
 			cutoff[i] = Math.floor(fractOfLen * delta);
 			cutsum += cutoff[i];
 		}
@@ -102,7 +102,7 @@ var Gallery = (function($) {
 		while(items.length > 0 && len < maxwidth) {
 			var item = items.shift();
 			row.push(item);
-			len += (item['photo960x180'][1] + marginsOfImage);
+			len += (item['photo160x160xCR'][1] + marginsOfImage);
 		}
 
 		// calculate by how many pixels too long?
@@ -121,14 +121,14 @@ var Gallery = (function($) {
 				item.vx = Math.floor(pixelsToRemove / 2);
 
 				// shrink the width of the image by pixelsToRemove
-				item.vwidth = item['photo960x180'][1] - pixelsToRemove;
+				item.vwidth = item['photo160x160xCR'][1] - pixelsToRemove;
 			}
 		} else {
 			// all images fit in the row, set vx and vwidth
 			for(var i in row) {
 				item = row[i];
 				item.vx = 0;
-				item.vwidth = item['photo960x180'][1];
+				item.vwidth = item['photo160x160xCR'][1];
 			}
 		}
 
@@ -141,22 +141,21 @@ var Gallery = (function($) {
 	 */
 	var createImageElement = function(parent, item) {
 		var imageContainer = $('<div class="imageContainer"/>');
-
 		var overflow = $("<div/>");
 		overflow.css("width", ""+$nz(item.vwidth, 120)+"px");
-		overflow.css("height", ""+$nz(item['path960x180'][1], 120)+"px");
+		overflow.css("height", ""+$nz(item['photo160x160xCR'][1], 120)+"px");
 		overflow.css("overflow", "hidden");
 
-    var urlParts = parseURL(item.url);
+                var urlParts = parseURL(item.url);
 		var link = $('<a/>');
-    link.attr('href', urlParts.pathname);
-		
+                link.attr('href', urlParts.pathname);
+//console.log(item);		
 		var img = $("<img/>");
-		img.attr("src", item.path960x180);
-    img.attr('class', 'photo-view-modal-click');
+		img.attr("src", item.path160x160xCR);
+                img.attr('class', 'photo-view-modal-click');
 		img.attr("title", item.title);
-		img.css("width", "" + $nz(item['path960x180'][1], 120) + "px");
-		img.css("height", "" + $nz(item['path960x180'][2], 120) + "px");
+		//img.css("width", "" + $nz(item['path960x180'][1], 120) + "px");
+		//img.css("height", "" + $nz(item['path960x180'][2], 120) + "px");
 		img.css("margin-left", "" + (item.vx ? (-item.vx) : 0) + "px");
 		img.css("margin-top", "" + 0 + "px");
 		img.hide();
@@ -200,7 +199,7 @@ var Gallery = (function($) {
 			
 			// Make a copy of the array
 			var items = realItems.slice();
-		
+	//console.log(items);	
 			// calculate rows of images which each row fitting into
 			// the specified windowWidth.
 			var rows = [];
@@ -220,7 +219,7 @@ var Gallery = (function($) {
 					}
 				}
 			}
-      imageContainer.append('<br clear="all"/>');
+                        imageContainer.append('<br clear="all"/>');
 		}
 	}
 })(jQuery);

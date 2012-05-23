@@ -11,10 +11,10 @@
         <ul class="nav">
           <li class="photos"><a href="<?php $this->url->photosView(); ?>"><i class="icon-picture icon-large"></i> Gallery</a></li>
           <li class="tags"><a href="<?php $this->url->tagsView(); ?>"><i class="icon-tag icon-large"></i> Tags</a></li>
-          <?php if($this->user->isOwner()) { ?>
+          <?php //if($this->user->isOwner()) { ?>
             <li class="upload"><a href="<?php $this->url->photosUpload(); ?>"><i class="icon-upload icon-large"></i> Upload</a></li>
             <li class="manage"><a href="<?php $this->url->manage(); ?>"><i class="icon-th icon-large"></i> Manage</a></li>
-          <?php } ?>
+          <?php //} ?>
         </ul>
 
         <ul class="nav pull-right">
@@ -31,7 +31,7 @@
         </ul>
         <?php if(!$this->user->isLoggedIn()) { ?>
           <ul class="nav pull-right">
-            <li><a href="https://openphoto.me/signup"><i class="icon-plus icon-large"></i> Create an account</a></li>
+            <li><a href="#" class="sign-up-click"><i class="icon-plus icon-large"></i> Create an account</a></li>
             <li><a href="#" class="login-modal-click"><i class="icon-signin icon-large"></i> Sign in</a></li>
           </ul>
         <?php } ?>

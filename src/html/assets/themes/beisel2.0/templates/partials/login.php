@@ -35,7 +35,7 @@
         
               <button type="button" class="btn btn-primary login-openphoto-click">Login</button>
             </form>
-          <div>
+          </div>
         <?php } ?>
 			</div>
 		</div>

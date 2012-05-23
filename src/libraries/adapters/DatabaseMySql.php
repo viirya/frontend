@@ -41,8 +41,18 @@ class DatabaseMySql implements DatabaseInterface
       $this->{$key} = $value;
     }
 
-    if(isset($this->config->user))
-      $this->owner = $this->config->user->email;
+    //if(isset($this->config->user))
+    //  $this->owner = $this->config->user->email;
+    if (getSession()->get('email'))
+      $this->owner = getSession()->get('email');
+  }
+
+  public function setOwner($owner) {
+    $this->owner = $owner;
+  }
+
+  public function getOwner() {
+    return $this->owner;
   }
 
   /**
@@ -412,18 +422,20 @@ class DatabaseMySql implements DatabaseInterface
   public function getGroups($email = null)
   {
 
-    if(empty($email))
+    if(empty($email)) {
       $res = $this->db->all("SELECT `grp`.*, `memb`.`email` 
         FROM `{$this->mySqlTablePrefix}group` AS `grp` 
         INNER JOIN `{$this->mySqlTablePrefix}groupMember` AS `memb` ON `grp`.`owner`=`memb`.`owner` AND `grp`.`id`=`memb`.`group` 
         WHERE `grp`.`id` IS NOT NULL AND `grp`.`owner`=:owner 
         ORDER BY `grp`.`name`", array(':owner' => $this->owner));
-    else
+    }
+    else {
       $res = $this->db->all("SELECT `grp`.*, `memb`.`email` 
         FROM `{$this->mySqlTablePrefix}group` AS `grp` 
         INNER JOIN `{$this->mySqlTablePrefix}groupMember` AS `memb` ON `grp`.`owner`=`memb`.`owner` AND `grp`.`id`=`memb`.`group` 
-        WHERE `memb`.`email`=:email AND `grp`.`id` IS NOT NULL AND `grp`.`owner`=:owner 
-        ORDER BY `grp`.`name`", array(':email' => $email, ':owner' => $this->owner));
+        WHERE `memb`.`email`=:email AND `grp`.`id` IS NOT NULL 
+        ORDER BY `grp`.`name`", array(':email' => $email));
+    }
 
     if($res !== false)
     {
@@ -445,6 +457,15 @@ class DatabaseMySql implements DatabaseInterface
 
     return false;
   }
+
+  public function getPhotoByHash($hash)
+  {
+    $photo = $this->db->one("SELECT * FROM `{$this->mySqlTablePrefix}photo` WHERE `hash`=:hash", array(':id' => $id));
+    if(empty($photo))
+      return false;
+    return $this->normalizePhoto($photo);
+  }
+
 
   /**
     * Get a photo specified by $id
@@ -544,15 +565,16 @@ class DatabaseMySql implements DatabaseInterface
     */
   public function getPhotos($filters = array(), $limit = 20, $offset = null)
   {
+    //$groups = $this->getGroups($this->owner);
+    //$filters['groups'] = $groups;
+    //print_r($filters);
     $query = $this->buildQuery($filters, $limit, $offset, 'photo');
     // buildQuery includes owner
     $photos = $this->db->all($sql = "SELECT {$this->mySqlTablePrefix}photo.* {$query['from']} {$query['where']} {$query['groupBy']} {$query['sortBy']} {$query['limit']} {$query['offset']}");
     if($photos === false)
       return false;
-
     for($i = 0; $i < count($photos); $i++)
       $photos[$i] = $this->normalizePhoto($photos[$i]);
-
     // TODO evaluate SQL_CALC_FOUND_ROWS (indexes with the query builder might be hard to optimize)
     // http://www.mysqlperformanceblog.com/2007/08/28/to-sql_calc_found_rows-or-not-to-sql_calc_found_rows/
     $result = $this->db->one("SELECT COUNT(*) {$query['from']} {$query['where']} {$query['groupBy']}");
@@ -647,6 +669,17 @@ class DatabaseMySql implements DatabaseInterface
     return null;
   }
 
+  public function getUserByEmail($email = null) {
+    if($email == '')
+      return false;;
+
+    $res = $this->db->one($sql = "SELECT * FROM `{$this->mySqlTablePrefix}user` WHERE `id`=:email", array(':email' => $email));
+    if($res)
+      return $this->normalizeUser($res);
+    return false;
+  }
+
+ 
   /**
     * Get the user record entry by username and password.
     *
@@ -986,8 +1019,14 @@ class DatabaseMySql implements DatabaseInterface
   public function postUser($params)
   {
     $params = $this->prepareUser($params);
-    $res = $this->db->execute("UPDATE `{$this->mySqlTablePrefix}user` SET `password`=:password,`extra`=:extra WHERE `id`=:id", 
+    if (isset($params['password'])) {
+      $res = $this->db->execute("UPDATE `{$this->mySqlTablePrefix}user` SET `password`=:password,`extra`=:extra WHERE `id`=:id",  
       array(':id' => $this->owner, ':password' => $params['password'], ':extra' => $params['extra']));
+    }
+    else {
+      $res = $this->db->execute("UPDATE `{$this->mySqlTablePrefix}user` SET `extra`=:extra WHERE `id`=:id",  
+      array(':id' => $this->owner, ':extra' => $params['extra']));
+    }
     return ($res == 1);
   }
 
@@ -1141,11 +1180,15 @@ class DatabaseMySql implements DatabaseInterface
     * @param array $params Attributes to update.
     * @return boolean
     */
-  public function putUser($params)
+  public function putUser($params, $owner = null)
   {
     $params = $this->prepareUser($params);
+
+    if ($owner == null)
+      $owner = $this->owner;
+
     $result = $this->db->execute("INSERT INTO `{$this->mySqlTablePrefix}user` (`id`,`password`,`extra`) VALUES (:id,:password,:extra)", 
-      array(':id' => $this->owner, ':password' => $params['password'], ':extra' => $params['extra']));
+      array(':id' => $owner, ':password' => $params['password'], ':extra' => $params['extra']));
     return $result !== false;
   }
 
@@ -1280,10 +1323,11 @@ class DatabaseMySql implements DatabaseInterface
             if(!is_array($value))
               $value = (array)explode(',', $value);
             foreach($value as $k => $v)
-              $value[$k] = $this->_($v);
-            $subquery = sprintf("(id IN (SELECT element FROM `{$this->mySqlTablePrefix}elementGroup` WHERE `{$this->mySqlTablePrefix}elementGroup`.`owner`='%s' AND `type`='%s' AND `group` IN('%s')) OR permission='1')",
-              $this->_($this->owner), 'photo', implode("','", $value));
-            $where = $this->buildWhere($where, $subquery);
+              $value[$k] = $v['id'];//$this->_($v);
+            $subquery = sprintf("(id IN (SELECT element FROM `{$this->mySqlTablePrefix}elementGroup` WHERE `type`='%s' AND `group` IN('%s')))",
+              'photo', implode("','", $value));
+            if (!isset($filters['hash']))
+              $where = $this->buildWhere($where, $subquery, 'or');
             break;
           case 'page':
             if($value > 1)
@@ -1355,6 +1399,7 @@ class DatabaseMySql implements DatabaseInterface
       $offset_sql = "OFFSET {$offset}";
 
     $ret = array('from' => $from, 'where' => $where, 'groupBy' => $groupBy, 'sortBy' => $sortBy, 'limit' => $limit_sql, 'offset' => $offset_sql);
+//print_r($ret);
     return $ret;
   }
   /**
@@ -1366,12 +1411,12 @@ class DatabaseMySql implements DatabaseInterface
     * @param string $add Clause to add.
     * @return string
     */
-  private function buildWhere($existing, $add)
+  private function buildWhere($existing, $add, $cond = 'and')
   {
     if(empty($existing))
       return "where {$add} ";
     else
-      return "{$existing} and {$add} ";
+      return "{$existing} {$cond} {$add} ";
   }
 
   /**
@@ -1421,10 +1466,14 @@ class DatabaseMySql implements DatabaseInterface
     * @param string $id Id of the photo of which to get versions of
     * @return array Array of versions
     */
-  private function getPhotoVersions($id)
+  private function getPhotoVersions($id, $owner = null)
   {
+
+    if ($owner == null)
+      $owner = $this->owner;
+
     $versions = $this->db->all("SELECT `key`,path FROM `{$this->mySqlTablePrefix}photoVersion` WHERE `id`=:id AND owner=:owner",
-                 array(':id' => $id, ':owner' => $this->owner));
+                 array(':id' => $id, ':owner' => $owner));
     if(empty($versions))
       return false;
     return $versions;
@@ -1491,7 +1540,7 @@ class DatabaseMySql implements DatabaseInterface
 
     $photo['appId'] = $this->config->application->appId;
 
-    $versions = $this->getPhotoVersions($photo['id']);
+    $versions = $this->getPhotoVersions($photo['id'], $photo['owner']);
     if($versions && !empty($versions))
     {
       foreach($versions as $version)
@@ -1543,7 +1592,7 @@ class DatabaseMySql implements DatabaseInterface
       foreach($jsonParsed as $key => $value)
         $raw[$key] = $value;
     }
-    unset($raw['extra'], $raw['password']);
+    unset($raw['extra']);//, $raw['password']);
     return $raw;
   }
 
@@ -1686,7 +1735,7 @@ class DatabaseMySql implements DatabaseInterface
           $extra[$key] = $val;
       }
       $ret['extra'] = json_encode($extra);
-      $ret['password'] = '';
+      //$ret['password'] = '';
       if(isset($params['password']))
         $ret['password'] = $params['password'];
     }

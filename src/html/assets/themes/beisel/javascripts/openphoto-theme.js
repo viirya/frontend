@@ -186,6 +186,7 @@ var opTheme = (function() {
       login: function(ev) {
         var el = $(ev.target);
         if(el.hasClass('browserid')) {
+	  return;
           navigator.id.getVerifiedEmail(function(assertion) {
               if (assertion) {
                 opTheme.user.browserid.loginSuccess(assertion);

@@ -193,7 +193,14 @@ class ApiPhotoController extends ApiBaseController
   public function list_($filterOpts = null)
   {
     // this extracts local variables $permission, $filter, $pageSize, etc
+ 
+    if (isset($_GET['hash']))
+      $filterOpts['hash'] = $_GET['hash'];
+
+    $groups = getDb()->getGroups(getDb()->getOwner());
+    //$filterOpts['groups'] = $groups;
     extract($this->parseFilters($filterOpts));
+    $filters['groups'] = $groups;
     $db = getDb();
     $photos = $db->getPhotos($filters, $pageSize);
 
@@ -285,7 +292,6 @@ class ApiPhotoController extends ApiBaseController
     }
 
     $photoId = false;
-
     $attributes['hash'] = sha1_file($localFile);
     // set default to config and override with parameter
     $allowDuplicate = $this->config->site->allowDuplicate;
@@ -293,7 +299,7 @@ class ApiPhotoController extends ApiBaseController
       $allowDuplicate = $attributes['allowDuplicate'];
     if($allowDuplicate == '0')
     {
-      $hashResp = $this->api->invoke("/{$this->apiVersion}/photos/list.json", EpiRoute::httpGet, array('_GET' => array('hash' => $attributes['hash'])));
+      $hashResp = $this->api->invoke("/{$this->apiVersion}/photos/list.json", EpiRoute::httpGet, array('_GET' => array('hash' => $attributes['hash'], 'owner' => getDb()->getOwner())));
       if($hashResp['result'][0]['totalRows'] > 0)
         return $this->conflict('This photo already exists based on a sha1 hash. To allow duplicates do not pass in allowDuplicate=1', false);
     }
@@ -301,9 +307,7 @@ class ApiPhotoController extends ApiBaseController
     $exiftran = $this->config->modules->exiftran;
     if(is_executable($exiftran))
       exec(sprintf('%s -ai %s', $exiftran, escapeshellarg($localFile)));
-
     $photoId = $this->photo->upload($localFile, $name, $attributes);
-
     if($photoId)
     {
       if(isset($returnSizes))

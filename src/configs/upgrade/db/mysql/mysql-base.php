@@ -104,10 +104,11 @@ SQL;
     `album` varchar(255) NOT NULL,
     `order` smallint(11) unsigned NOT NULL DEFAULT '0',
     PRIMARY KEY (`id`),
-    UNIQUE KEY `id` (`owner`,`type`,`element`,`album`),
+    UNIQUE KEY `id` (`owner`,`type`,`element`,`album`(10)),
     KEY `element` (`element`)
   ) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
 SQL;
+  print $sql;
   mysql_base($sql);
 
   $sql = <<<SQL
@@ -189,6 +190,7 @@ SQL;
     `dateUploadedDay` int(11) DEFAULT NULL,
     `dateUploadedMonth` int(11) DEFAULT NULL,
     `dateUploadedYear` int(11) DEFAULT NULL,
+    `dateSortByDay` int(11) DEFAULT NULL,
     `filenameOriginal` varchar(255) DEFAULT NULL,
     `pathOriginal` varchar(1000) DEFAULT NULL,
     `pathBase` varchar(1000) DEFAULT NULL,

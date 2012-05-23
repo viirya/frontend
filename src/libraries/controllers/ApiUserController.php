@@ -17,6 +17,17 @@ class ApiUserController extends ApiBaseController
     $this->user = new User;
   }
 
+  public function signup($provider = null) {
+
+    list($wasUserSignnedIn, $error_msg) = $this->user->signup($provider, $_POST);
+    if($wasUserSignnedIn)
+      return $this->success('User was signned up successfully', array('email' => getSession()->get('email')));
+    else
+      if ($error_msg == '')
+        $error_msg = "User can not be signned up.";
+      return $this->forbidden($error_msg, false);
+  }
+
   /**
     * Log a user in via BrowserID
     *
